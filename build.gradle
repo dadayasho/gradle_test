@@ -4,6 +4,7 @@ plugins {
     id 'java'
     id 'application'
     id "org.beryx.jlink" version "2.16.2"
+    id 'jacoco'
     id "org.sonarqube" version "3.5.0.2730" 
 }
 
@@ -30,6 +31,20 @@ dependencies {
 ext.moduleName = 'razesoldier.epub'
 mainClassName = "$moduleName/razesoldier.epub.cli.CliEntry"
 
+// Настройка JaCoCo
+jacoco {
+    toolVersion = "0.8.10" // Актуальная версия
+}
+
+// Генерация отчета
+jacocoTestReport {
+    reports {
+        xml.required = true // Для SonarQube
+        html.required = true // Для локального просмотра
+    }
+    dependsOn test // Запускать после тестов
+}
+
 task copyTestResource(type: Copy) {
     from "$buildDir/resources/test"
     into "$buildDir/classes/java/test"
@@ -49,6 +64,7 @@ compileJava {
 test {
     dependsOn copyTestResource
     useJUnitPlatform()
+    finalizedBy jacocoTestReport // Связываем с генерацией отчета
 }
 
 startScripts {
@@ -80,33 +96,4 @@ afterEvaluate {
             attributes 'Implementation-Title': "EPubHant2Hans",
                     'Main-Class': 'razesoldier.epub.cli.CliEntry'
         }
-    }
-}
-
-jlink {
-    launcher {
-        name = 'epubconverter'
-        jvmArgs = ['-Dfile.encoding=UTF-8']
-    }
-    imageName.set("epubconverter-image")
-    addOptions("--bind-services")
-}
-
-sonar {
-    properties {
-        property "sonar.projectKey", "gradle"
-        property "sonar.host.url", "http://localhost:9000"
-        property "sonar.login", "sqp_4c4640f9d8c944743860287b3be67e10a7151371"
-    }
-}
-
-tasks.jlink.doLast {
-    copy {
-        from('src/main/resources')
-        into("$buildDir/image/bin")
-    }
-}
-
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
-}
+   
